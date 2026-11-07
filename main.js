@@ -18,10 +18,16 @@ const pill=(id,text,kind)=>{const e=$(id);e.textContent=text;e.className='pill '
 const say=(msg)=>{const el=$('log');el.textContent=`[${new Date().toLocaleTimeString()}] ${msg}\n`+el.textContent.slice(0,3500);};
 const amount=paise=>new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR'}).format(paise/100);
 let auth,currentUser=null,backendReady=false,seedReady=false,order=null,paying=false;
+let recoveryAudit=null;
 function updateButtons(){
   $('create-order').disabled=!currentUser||!seedReady||paying;
   $('pay').disabled=!currentUser||!order||!backendReady||paying||order.paymentStatus==='verified';
   $('inspect').disabled=!currentUser||!order||paying;
+  $('load-existing').disabled=!currentUser||!seedReady||paying;
+  $('audit-provider').disabled=!currentUser||!order||!backendReady||paying;
+  $('link-provider').disabled=!currentUser||!order||!backendReady||paying||
+    !recoveryAudit||recoveryAudit.orderKey!==order.orderKey||
+    recoveryAudit.providerOrderId!==$('provider-order-id').value.trim();
 }
 function checkStatus(data){
   if(data.environment!=='staging'||data.firebaseProjectId!==PROJECT||data.livePaymentsEnabled!==false||
@@ -75,7 +81,7 @@ $('create-order').onclick=async()=>{
     const qty=Number($('qty').value);
     const created=await api('/api/staging/test-order','POST',{sku,qty});
     if(created.environment!=='staging'||created.currency!=='INR'||!Number.isSafeInteger(created.totalPaise)||created.totalPaise<100)throw Error('Untrusted staging order');
-    order={...created};showOrder();say('Dummy staging order created '+order.orderId+' ('+amount(order.totalPaise)+'). NO payment initiated.');
+    recoveryAudit=null;order={...created};showOrder();say('Dummy staging order created '+order.orderId+' ('+amount(order.totalPaise)+'). NO payment initiated.');
   }catch(e){say('Could not create test order: '+e.message);}
   finally{updateButtons();}
 };
@@ -85,6 +91,44 @@ $('inspect').onclick=async()=>{
     if(result.environment!=='staging'||result.orderId!==order.orderId)throw Error('Order identity mismatch');
     order={...order,...result};showOrder();say('Firebase status: '+result.status+' / '+result.paymentStatus);
   }catch(e){say('Could not inspect order: '+e.message);}
+};
+$('load-existing').onclick=async()=>{
+ if(paying||!currentUser||!seedReady)return;
+ const key=$('existing-order-key').value.trim();
+ if(!/^[-A-Za-z0-9_]{8,128}$/.test(key)){say('Enter the Firebase database order key, beginning with -');return;}
+ try{
+  const loaded=await api('/api/staging/test-order/'+encodeURIComponent(key));
+  if(loaded.environment!=='staging'||loaded.orderKey!==key||!/^MQB-TEST-/.test(loaded.orderId||''))
+   throw Error('Unexpected staging order identity');
+  recoveryAudit=null;order={...loaded};showOrder();say('Loaded existing TEST order '+loaded.orderId+' ('+loaded.status+' / '+loaded.paymentStatus+').');
+ }catch(e){say('Could not load existing staging order: '+e.message);}
+};
+$('provider-order-id').oninput=()=>{recoveryAudit=null;updateButtons();};
+$('audit-provider').onclick=async()=>{
+ if(paying||!order||!backendReady)return;
+ const id=$('provider-order-id').value.trim();
+ if(!/^order_[A-Za-z0-9]{6,80}$/.test(id)){say('Enter the Razorpay TEST provider order ID beginning order_');return;}
+ paying=true;updateButtons();
+ try{
+  const result=await api('/api/staging/recover-created-order','POST',{orderKey:order.orderKey,providerOrderId:id,apply:false});
+  if(result.action!=='eligible_for_test_recovery'||result.providerOrderId!==id||result.amountPaise!==order.totalPaise||result.attempts!==0)
+   throw Error('Unexpected provider-recovery audit result');
+  recoveryAudit={orderKey:order.orderKey,providerOrderId:id};
+  say('Read-only TEST audit passed for '+id+': exact receipt, ₹'+(result.amountPaise/100)+', no payment attempts, existing stock hold. Review then click Link verified TEST order.');
+ }catch(e){recoveryAudit=null;say('Test provider order NOT eligible for recovery: '+e.message);}
+ finally{paying=false;updateButtons();}
+};
+$('link-provider').onclick=async()=>{
+ if(paying||!recoveryAudit||!order||recoveryAudit.orderKey!==order.orderKey||
+    recoveryAudit.providerOrderId!==$('provider-order-id').value.trim())return;
+ paying=true;updateButtons();
+ try{
+  const result=await api('/api/staging/recover-created-order','POST',{...recoveryAudit,apply:true});
+  if(result.action!=='test_session_linked')throw Error('Provider was not linked');
+  say('Existing Razorpay TEST order securely linked. No payment initiated. Use Refresh order status; then proceed only when ready.');
+  recoveryAudit=null;
+ }catch(e){say('Test recovery stopped; do not retry until reviewed: '+e.message);}
+ finally{paying=false;updateButtons();}
 };
 function ensureRazorpay(){return new Promise((resolve,reject)=>{
  if(typeof window.Razorpay==='function'){resolve();return;}
