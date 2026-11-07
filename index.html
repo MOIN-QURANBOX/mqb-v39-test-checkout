@@ -33,6 +33,16 @@
     <div class="readiness"><div>Order ID <strong id="order-id">None yet</strong></div><div>Final approved test total <strong id="order-total">—</strong></div><div>Order status <strong id="order-status">—</strong></div><div>Payment status <strong id="payment-status">—</strong></div></div>
     <div class="actions"><button id="pay" type="button" disabled>Open Razorpay TEST Checkout</button><button id="inspect" class="secondary" type="button" disabled>Refresh order status</button></div>
     <small>Use only Razorpay's documented Test Mode payment methods. The checkout will refuse live keys and any backend that reports live payments enabled.</small>
+    <details style="margin-top:18px;padding:14px;border:1px solid #cbd5e1;border-radius:12px">
+      <summary><strong>Recover an existing staging-only test order (no charge)</strong></summary>
+      <p class="muted">Only for test orders stuck in <code>creating</code> after Razorpay created an order. First load the original Firebase order key; then verify the matching Razorpay TEST order. No new order or payment is created during this recovery.</p>
+      <label for="existing-order-key">Firebase database order key (not the MQB-TEST display ID)</label>
+      <div class="actions"><input id="existing-order-key" type="text" spellcheck="false" autocomplete="off" placeholder="-P..." style="min-width:260px;max-width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:8px"><button class="secondary" id="load-existing" type="button" disabled>Load existing order</button></div>
+      <label for="provider-order-id">Razorpay TEST provider order ID</label>
+      <div class="actions"><input id="provider-order-id" type="text" spellcheck="false" autocomplete="off" placeholder="order_..." style="min-width:260px;max-width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:8px"><button class="secondary" id="audit-provider" type="button" disabled>Verify TEST order (read-only)</button></div>
+      <div class="actions"><button id="link-provider" type="button" disabled>Link the verified TEST order</button></div>
+      <small>Linking requires a matching receipt, amount, currency, untouched payment attempts, and held stock. This is TEST MODE ONLY. Never paste any key secret or bearer token here.</small>
+    </details>
   </section>
   <section class="card" aria-live="polite"><div class="section-top"><h2>Activity</h2><button id="copy-log" class="secondary" type="button">Copy safe log</button></div><pre id="log">Initializing the isolated staging checkout…</pre></section>
   <footer>moin-quran-box-staging · Test-only data · No production payment gateway connections</footer>
