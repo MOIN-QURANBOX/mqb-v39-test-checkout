@@ -43,6 +43,16 @@
       <div class="actions"><button id="link-provider" type="button" disabled>Link the verified TEST order</button></div>
       <small>Linking requires a matching receipt, amount, currency, untouched payment attempts, and held stock. This is TEST MODE ONLY. Never paste any key secret or bearer token here.</small>
     </details>
+    <details style="margin-top:15px;padding:14px;border:1px solid #cbd5e1;border-radius:12px">
+      <summary><strong>Operator cleanup: one abandoned ₹5 TEST hold (no payment)</strong></summary>
+      <p class="muted">ONLY for the interrupted old order <code>MQB-TEST-BA57035DF73144E8B6B3</code> linked to Razorpay Test order <code>order_TxJPWfDtWt4ujm</code>. This is not a payment or refund. Requires the current allowlisted staging tester to be signed in.</p>
+      <label for="cleanup-old-uid">Original Firebase UID of the OLD order (not your current UID)</label>
+      <div class="actions"><input id="cleanup-old-uid" type="text" spellcheck="false" autocomplete="off" placeholder="Copy from old order's uid field" style="min-width:260px;max-width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:8px"></div>
+      <label for="cleanup-old-key">Original Firebase database order key</label>
+      <div class="actions"><input id="cleanup-old-key" type="text" spellcheck="false" autocomplete="off" placeholder="-P..." style="min-width:260px;max-width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:8px"></div>
+      <div class="actions"><button class="secondary" id="audit-abandoned" type="button" disabled>Audit old TEST hold (read-only)</button><button id="release-abandoned" type="button" disabled>Release the verified old TEST hold</button></div>
+      <small>Releases exactly one unpaid, zero-attempt TEST hold after checking exact order, original UID, session, provider receipt, and payment attempts. Never applies to production. Stop if any check fails. Only the read-only Audit should be used until reviewed.</small>
+    </details>
   </section>
   <section class="card" aria-live="polite"><div class="section-top"><h2>Activity</h2><button id="copy-log" class="secondary" type="button">Copy safe log</button></div><pre id="log">Initializing the isolated staging checkout…</pre></section>
   <footer>moin-quran-box-staging · Test-only data · No production payment gateway connections</footer>
