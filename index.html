@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer">
+<title>MQB V39 — STAGING ONLY · Razorpay Test Checkout</title>
+<link rel="stylesheet" href="./style.css"></head>
+<body>
+<main class="wrap">
+  <div class="strip">STAGING / TEST MODE ONLY — NO REAL ORDERS OR REAL MONEY</div>
+  <header><div class="logo">MQB <span>V39</span></div><h1>Razorpay Test Checkout</h1><p>Isolated test environment for MOIN QURAN BOX. Not connected to the production store.</p></header>
+  <div class="grid">
+    <section class="card"><div class="section-top"><h2>1. Verified test identity</h2><span class="pill neutral" id="auth-pill">Connecting</span></div>
+      <p class="muted">Uses Anonymous Authentication in <strong>moin-quran-box-staging</strong>. No password or real customer information is needed.</p>
+      <label for="uid">Your staging tester UID</label>
+      <div class="copyline"><input id="uid" readonly placeholder="Signing in…"/><button id="copy-uid" type="button" disabled>Copy UID</button></div>
+      <small>Copy this UID into the staging Render environment variable <code>MQB_STAGING_ALLOWED_UID</code>. This is a test identifier, not a secret.</small>
+    </section>
+    <section class="card"><div class="section-top"><h2>2. Backend readiness</h2><span class="pill neutral" id="backend-pill">Checking</span></div>
+      <div class="readiness"><div>Project <strong id="backend-project">—</strong></div><div>Dummy order seeding <strong id="seed-state">—</strong></div><div>Razorpay Test Mode <strong id="gateway-state">—</strong></div><div>Live payments <strong id="live-state">—</strong></div></div>
+      <button class="secondary" id="refresh-config" type="button">Refresh staging status</button>
+    </section>
+  </div>
+  <section class="card"><h2>3. Create a dummy staging order</h2>
+    <p class="muted">Only the two imported TEST ONLY catalog items are available. Prices and stock are verified by the staging backend, not by this page. Delivery = ₹0.</p>
+    <div class="products" id="products">
+      <label class="product"><input type="radio" name="product" value="MQB_TEST_LAST_UNIT" checked><span><strong>Last Unit Quran Box</strong><small>TEST ONLY · Stock initially 1</small></span><b>₹10</b></label>
+      <label class="product"><input type="radio" name="product" value="MQB_TEST_SECOND_ITEM"><span><strong>Second Item</strong><small>TEST ONLY · Stock initially 5</small></span><b>₹5</b></label>
+    </div>
+    <div class="actions"><label for="qty">Quantity <select id="qty"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></label><button id="create-order" type="button" disabled>Create Dummy Test Order</button></div>
+    <small>Creating an order does not open Razorpay or charge money. Do not repeat it unnecessarily.</small>
+  </section>
+  <section class="card" id="order-area"><h2>4. Test payment and confirmation</h2>
+    <div class="readiness"><div>Order ID <strong id="order-id">None yet</strong></div><div>Final approved test total <strong id="order-total">—</strong></div><div>Order status <strong id="order-status">—</strong></div><div>Payment status <strong id="payment-status">—</strong></div></div>
+    <div class="actions"><button id="pay" type="button" disabled>Open Razorpay TEST Checkout</button><button id="inspect" class="secondary" type="button" disabled>Refresh order status</button></div>
+    <small>Use only Razorpay's documented Test Mode payment methods. The checkout will refuse live keys and any backend that reports live payments enabled.</small>
+  </section>
+  <section class="card" aria-live="polite"><div class="section-top"><h2>Activity</h2><button id="copy-log" class="secondary" type="button">Copy safe log</button></div><pre id="log">Initializing the isolated staging checkout…</pre></section>
+  <footer>moin-quran-box-staging · Test-only data · No production payment gateway connections</footer>
+</main>
+<script type="module" src="./main.js"></script>
+</body></html>
