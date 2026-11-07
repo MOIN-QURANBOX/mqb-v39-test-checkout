@@ -18,13 +18,17 @@ const pill=(id,text,kind)=>{const e=$(id);e.textContent=text;e.className='pill '
 const say=(msg)=>{const el=$('log');el.textContent=`[${new Date().toLocaleTimeString()}] ${msg}\n`+el.textContent.slice(0,3500);};
 const amount=paise=>new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR'}).format(paise/100);
 let auth,currentUser=null,backendReady=false,seedReady=false,order=null,paying=false;
-let recoveryAudit=null;
+let recoveryAudit=null,abandonedAudit=null;
 function updateButtons(){
   $('create-order').disabled=!currentUser||!seedReady||paying;
   $('pay').disabled=!currentUser||!order||!backendReady||paying||order.paymentStatus==='verified';
   $('inspect').disabled=!currentUser||!order||paying;
   $('load-existing').disabled=!currentUser||!seedReady||paying;
   $('audit-provider').disabled=!currentUser||!order||!backendReady||paying;
+  $('audit-abandoned').disabled=!currentUser||!backendReady||paying;
+  $('release-abandoned').disabled=!currentUser||!backendReady||paying||!abandonedAudit||
+    abandonedAudit.oldUid!==$('cleanup-old-uid').value.trim()||
+    abandonedAudit.orderKey!==$('cleanup-old-key').value.trim();
   $('link-provider').disabled=!currentUser||!order||!backendReady||paying||
     !recoveryAudit||recoveryAudit.orderKey!==order.orderKey||
     recoveryAudit.providerOrderId!==$('provider-order-id').value.trim();
@@ -128,6 +132,38 @@ $('link-provider').onclick=async()=>{
   say('Existing Razorpay TEST order securely linked. No payment initiated. Use Refresh order status; then proceed only when ready.');
   recoveryAudit=null;
  }catch(e){say('Test recovery stopped; do not retry until reviewed: '+e.message);}
+ finally{paying=false;updateButtons();}
+};
+$('cleanup-old-uid').oninput=()=>{abandonedAudit=null;updateButtons();};
+$('cleanup-old-key').oninput=()=>{abandonedAudit=null;updateButtons();};
+$('audit-abandoned').onclick=async()=>{
+ if(paying||!backendReady||!currentUser)return;
+ const oldUid=$('cleanup-old-uid').value.trim(),orderKey=$('cleanup-old-key').value.trim();
+ if(!/^[A-Za-z0-9_-]{6,128}$/.test(oldUid)||!/^[-A-Za-z0-9_]{8,128}$/.test(orderKey)){
+  say('Enter OLD order owner UID and OLD Firebase database key. Do not use current new UID.');return;
+ }
+ paying=true;updateButtons();
+ try{
+   const result=await api('/api/staging/audit-abandoned-hold','POST',{oldUid,orderKey,apply:false});
+   if(result.action!=='eligible_to_release_abandoned_test_hold'||
+      result.customerOrderId!=='MQB-TEST-BA57035DF73144E8B6B3'||
+      result.providerOrderId!=='order_TxJPWfDtWt4ujm'||result.quantity!==1||result.attempts!==0)
+     throw Error('Unexpected cleanup audit result; stop');
+   abandonedAudit={oldUid,orderKey};
+   say('Read-only abandoned TEST hold AUDIT PASSED. Exact provider, 0 attempts/payments, stock hold 1, available stock '+result.stockBefore+'. NO changes made. STOP here for review before release.');
+ }catch(e){abandonedAudit=null;say('Abandoned hold audit blocked: '+e.message);}
+ finally{paying=false;updateButtons();}
+};
+$('release-abandoned').onclick=async()=>{
+ if(!abandonedAudit||paying||!backendReady)return;
+ if(!window.confirm('FINAL STAGING ONLY: permanently cancel OLD test order, mark its hold released and return exactly 1 TEST unit to inventory? This will not create or refund a payment.'))return;
+ paying=true;updateButtons();
+ try{
+  const result=await api('/api/staging/audit-abandoned-hold','POST',{...abandonedAudit,apply:true});
+  if(result.action!=='abandoned_test_hold_released')throw Error('Unexpected release result');
+  say('Old TEST hold safely released; new stock '+result.stockAfter+'. Old test order cancelled; session abandoned. No provider payment created.');
+  abandonedAudit=null;
+ }catch(e){say('TEST cleanup interrupted; DO NOT retry. Check backend state before any further action: '+e.message);abandonedAudit=null;}
  finally{paying=false;updateButtons();}
 };
 function ensureRazorpay(){return new Promise((resolve,reject)=>{
